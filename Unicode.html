@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicode Analyzer</title>
+    <style>
+
+        @font-face {
+            font-family: 'DongbaFont';
+            src: url('DongbaFont.otf') format('opentype');
+        }
+
+        /* 添加通用Unicode字体栈，包含多种备用字体 */
+        @font-face {
+            font-family: 'UnicodeFont';
+            src: local('Noto Sans'),
+                 local('Noto Sans CJK SC'),
+                 local('Arial Unicode MS'),
+                 local('Segoe UI Symbol'),
+                 local('Symbola');
+        }
+
+        :root {
+            --main-bg-color: #1c1c1c;
+            --text-color: #ffffff;
+            --card-bg-color: #222222;
+            --accent-color: #ffffff;
+            --button-bg-color: #333333;
+            --button-text-color: #ffffff;
+            --card-border-color: #333333;
+        }
+        
+        body {
+            font-family: 'DongbaFont', 'Helvetica Neue', 'Apple Color Emoji', Arial, sans-serif;
+
+            margin: 0;
+            padding: 40px;
+            background-color: var(--main-bg-color);
+            color: var(--text-color);
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin-bottom: 30px;
+            font-weight: normal;
+        }
+        
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .input-section {
+            margin-bottom: 40px;
+        }
+        
+        .input-label {
+            font-size: 20px;
+            margin-right: 15px;
+            display: inline-block;
+        }
+        
+        .input-field {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 18px;
+            width: 300px;
+            margin-right: 10px;
+        }
+        
+        .submit-button {
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .submit-button:hover {
+            background-color: #444;
+        }
+        
+        .results-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .char-card {
+            background-color: var(--card-bg-color);
+            width: 220px;
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .card-header {
+            background-color: var(--card-bg-color);
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            border-bottom: 1px solid var(--card-border-color);
+        }
+        
+        .card-char {
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            position: relative;
+            /* 添加完整的字体回退栈，emoji字体放在最前面 */
+                        /* 使用字体栈支持更多Unicode字符 */
+            font-family: 'DongbaFont', 'UnicodeFont', 'Noto Sans', 'Noto Sans CJK SC', 'Arial Unicode MS', 'Segoe UI Symbol', 'Apple Color Emoji', 'Symbola', sans-serif;
+        }
+        
+        .card-info {
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .char-code {
+            font-family: monospace;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .char-name {
+            font-size: 14px;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px 0;
+            color: #777;
+            font-size: 18px;
+        }
+        
+        .dotted-circle {
+            border: 2px dotted #666;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Unicode Analyzer</h1>
+    </header>
+    
+    <div class="container">
+        <div class="input-section">
+            <form id="analyzeForm" class="input-form">
+                <input type="text" id="textInput" class="input-field" placeholder="Enter text to analyze..." required>
+                <button type="submit" class="submit-button">Analyze</button>
+            </form>
+            <p>Enter any text or characters to see their Unicode composition.</p>
+        </div>
+        
+        <div class="results-section" id="resultsSection">
+            <div id="initialMessage" class="no-results">
+                
+            </div>
+            <div id="analysisResults" style="display: none;">
+                <div class="char-preview" id="charPreview"></div>
+                <h2>Character Analysis</h2>
+                <table id="charTable">
+                    <thead>
+                        <tr>
+                            <th>Character</th>
+                            <th>Unicode</th>
+                            <th>Code Point</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                        </tr>
+                    </thead>
+                    <tbody id="charTableBody">
+                        <!-- Results will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量：存储从JSON加载的Unicode数据
+        let unicodeData = null;
+        let dataLoading = false;
+        
+        // 页面加载时预加载JSON数据
+        async function loadUnicodeData() {
+            if (unicodeData || dataLoading) return;
+            
+            dataLoading = true;
+            try {
+                console.log('正在加载Unicode数据...');
+                const response = await fetch('unicode_data.json');
+                unicodeData = await response.json();
+                console.log('Unicode数据加载完成，包含', Object.keys(unicodeData).length, '个字符');
+            } catch (error) {
+                console.error('加载Unicode数据失败:', error);
+            } finally {
+                dataLoading = false;
+            }
+        }
+        
+        // 页面加载时立即开始加载数据
+        loadUnicodeData();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('analyzeForm');
+            const textInput = document.getElementById('textInput');
+            const initialMessage = document.getElementById('initialMessage');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Unicode categories mapping (not used in card view but kept for reference)
+            const categories = {
+                'Lu': 'Letter, Uppercase',
+                'Ll': 'Letter, Lowercase',
+                'Lt': 'Letter, Titlecase',
+                'Lm': 'Letter, Modifier',
+                'Lo': 'Letter, Other',
+                'Mn': 'Mark, Nonspacing',
+                'Mc': 'Mark, Spacing Combining',
+                'Me': 'Mark, Enclosing',
+                'Nd': 'Number, Decimal Digit',
+                'Nl': 'Number, Letter',
+                'No': 'Number, Other',
+                'Pc': 'Punctuation, Connector',
+                'Pd': 'Punctuation, Dash',
+                'Ps': 'Punctuation, Open',
+                'Pe': 'Punctuation, Close',
+                'Pi': 'Punctuation, Initial quote',
+                'Pf': 'Punctuation, Final quote',
+                'Po': 'Punctuation, Other',
+                'Sm': 'Symbol, Math',
+                'Sc': 'Symbol, Currency',
+                'Sk': 'Symbol, Modifier',
+                'So': 'Symbol, Other',
+                'Zs': 'Separator, Space',
+                'Zl': 'Separator, Line',
+                'Zp': 'Separator, Paragraph',
+                'Cc': 'Other, Control',
+                'Cf': 'Other, Format',
+                'Cs': 'Other, Surrogate',
+                'Co': 'Other, Private Use',
+                'Cn': 'Other, Not Assigned'
+            };
+            
+            // 从JSON数据获取字符信息
+            async function getCharInfo(codePoint) {
+                // 确保数据已加载
+                if (!unicodeData) {
+                    await loadUnicodeData();
+                }
+                
+                // 从JSON数据中查询
+                if (unicodeData && unicodeData[codePoint]) {
+                    return unicodeData[codePoint];
+                }
+                
+                // 如果找不到，返回基本信息
+                return {
+                    name: getBasicCharName(codePoint),
+                    gc: 'Cn',
+                    hex: `U+${codePoint.toString(16).toUpperCase().padStart(4, '0')}`
+                };
+            }
+            
+            function getBasicCharName(code) {
+                // 基本的后备名称生成
+                const hex = code.toString(16).toUpperCase();
+                
+                // 针对特定范围的通用名称
+                if (code >= 0x4E00 && code <= 0x9FFF) {
+                    return 'CJK UNIFIED IDEOGRAPH-' + hex;
+                }
+                if (code >= 0x3400 && code <= 0x4DBF) {
+                    return 'CJK UNIFIED IDEOGRAPH EXTENSION A-' + hex;
+                }
+                if (code >= 0x20000 && code <= 0x2A6DF) {
+                    return 'CJK UNIFIED IDEOGRAPH-' + hex;
+                }
+                
+                return 'U+' + hex;
+            }
+            
+            // Function to determine if character should have dotted circle display
+            function shouldShowDottedCircle(code) {
+                // Arabic combining marks (approximate range)
+                return (code >= 0x064B && code <= 0x065F) || 
+                       (code >= 0x06D6 && code <= 0x06ED);
+            }
+            
+            // 修改表单提交处理程序，使用异步函数
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const text = textInput.value;
+                if (!text) return;
+                
+                // 确保Unicode数据已加载
+                if (!unicodeData) {
+                    resultsSection.innerHTML = '<div class="no-results">正在加载Unicode数据，请稍候...</div>';
+                    await loadUnicodeData();
+                }
+                
+                // 隐藏初始消息
+                initialMessage.style.display = 'none';
+                
+                // 清除之前的结果
+                resultsSection.innerHTML = '';
+                
+                // 分析每个字符
+                for (let i = 0; i < text.length; i++) {
+                    const char = text.charAt(i);
+                    const code = text.codePointAt(i);
+                    
+                    // 跳过代理对的第二部分
+                    if (code !== text.charCodeAt(i)) {
+                        i++;
+                    }
+                    
+                    // 从JSON获取字符信息
+                    const charInfo = await getCharInfo(code);
+                    const hexCode = code.toString(16).toUpperCase().padStart(4, '0');
+                    const showDottedCircle = shouldShowDottedCircle(code);
+                    
+                    // 创建卡片
+                    const card = document.createElement('div');
+                    card.className = 'char-card';
+                    
+                    // 卡片内容
+                    card.innerHTML = `
+                        <div class="card-header">U+${hexCode}</div>
+                        <div class="card-char">
+                            ${showDottedCircle ? '<div class="dotted-circle"></div>' : ''}
+                            ${char}
+                        </div>
+                        <div class="card-info">
+                            <div class="char-name">${charInfo.name}</div>
+                        </div>
+                    `;
+                    
+                    // 将卡片添加到结果区域
+                    resultsSection.appendChild(card);
+                }
+            });
+            
+                        // If there's a query parameter, analyze it automatically
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryText = urlParams.get('q');
+            if (queryText) {
+                textInput.value = decodeURIComponent(queryText);
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
