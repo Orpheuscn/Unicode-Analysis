@@ -1,9 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unicode Analyzer</title>
+    <meta name="description" content="分析和显示Unicode字符的详细信息，支持SVG字形显示">
+    <meta name="theme-color" content="#1c1c1c">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- iOS支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Unicode">
+    <link rel="apple-touch-icon" href="/icons/icon-180.png">
+    
+    <!-- 图标 -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    
     <style>
 
         @font-face {
@@ -122,6 +138,24 @@
             /* 添加完整的字体回退栈，emoji字体放在最前面 */
                         /* 使用字体栈支持更多Unicode字符 */
             font-family: 'DongbaFont', 'UnicodeFont', 'Noto Sans', 'Noto Sans CJK SC', 'Arial Unicode MS', 'Segoe UI Symbol', 'Apple Color Emoji', 'Symbola', sans-serif;
+        }
+        
+        .char-svg-container {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+        
+        .char-svg-container svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .char-text {
+            display: inline-block;
         }
         
         .card-info {
@@ -337,19 +371,25 @@
                     
                     // 从JSON获取字符信息
                     const charInfo = await getCharInfo(code);
-                    const hexCode = code.toString(16).toUpperCase().padStart(4, '0');
+                    // 根据code的大小决定补齐位数：4位、5位或6位
+                    const minDigits = code <= 0xFFFF ? 4 : (code <= 0xFFFFF ? 5 : 6);
+                    const hexCode = code.toString(16).toUpperCase().padStart(minDigits, '0');
                     const showDottedCircle = shouldShowDottedCircle(code);
                     
                     // 创建卡片
                     const card = document.createElement('div');
                     card.className = 'char-card';
                     
-                    // 卡片内容
+                    // SVG文件路径
+                    const svgPath = `char_svgs/U+${hexCode}.svg`;
+                    
+                    // 卡片内容 - 先显示加载中
                     card.innerHTML = `
                         <div class="card-header">U+${hexCode}</div>
-                        <div class="card-char">
+                        <div class="card-char" id="char-${hexCode}">
                             ${showDottedCircle ? '<div class="dotted-circle"></div>' : ''}
-                            ${char}
+                            <div class="char-svg-container"></div>
+                            <span class="char-text" style="display: none;">${char}</span>
                         </div>
                         <div class="card-info">
                             <div class="char-name">${charInfo.name}</div>
@@ -358,6 +398,34 @@
                     
                     // 将卡片添加到结果区域
                     resultsSection.appendChild(card);
+                    
+                    // 异步加载SVG并内联显示
+                    const container = card.querySelector('.char-svg-container');
+                    fetch(svgPath)
+                        .then(response => {
+                            if (!response.ok) throw new Error('SVG not found');
+                            return response.text();
+                        })
+                        .then(svgContent => {
+                            // 插入SVG内容并添加样式
+                            container.innerHTML = svgContent;
+                            const svgElement = container.querySelector('svg');
+                            if (svgElement) {
+                                svgElement.style.width = '120px';
+                                svgElement.style.height = '120px';
+                                svgElement.style.display = 'block';
+                                // 将所有path设置为白色
+                                const paths = svgElement.querySelectorAll('path');
+                                paths.forEach(path => path.setAttribute('fill', 'white'));
+                                console.log('SVG加载成功:', svgPath);
+                            }
+                        })
+                        .catch(error => {
+                            // SVG加载失败，显示字符
+                            console.log('SVG加载失败，回退到字符:', svgPath);
+                            container.style.display = 'none';
+                            card.querySelector('.char-text').style.display = 'inline-block';
+                        });
                 }
             });
             
@@ -369,6 +437,19 @@
                 form.dispatchEvent(new Event('submit'));
             }
         });
+        
+        // 注册Service Worker实现PWA功能
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker 注册成功:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Service Worker 注册失败:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
