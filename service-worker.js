@@ -1,14 +1,14 @@
-const CACHE_NAME = 'unicode-analyzer-v1';
+const CACHE_NAME = 'unicode-analyzer-v2';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/unicode_data.json',
-  '/svg_index.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/icon-180.png',
-  '/icon.svg'
+  './',
+  './index.html',
+  './manifest.json',
+  './unicode_data.json',
+  './svg_index.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-180.png',
+  './icon.svg'
 ];
 
 // 安装事件 - 预缓存核心资源
@@ -92,7 +92,7 @@ self.addEventListener('fetch', (event) => {
           }
           // 如果是HTML页面请求，返回离线页面
           if (request.headers.get('accept').includes('text/html')) {
-            return caches.match('/index.html');
+            return caches.match('./index.html');
           }
         });
       })
