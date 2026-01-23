@@ -402,7 +402,14 @@
                     const container = card.querySelector('.char-svg-container');
                     fetch(svgPath)
                         .then(response => {
-                            if (!response.ok) throw new Error('SVG not found');
+                            if (!response.ok) {
+                                // SVG in char_svgs not found, try supplement_svgs
+                                const suppPath = `supplement_svgs/U+${hexCode}.svg`;
+                                return fetch(suppPath).then(suppRes => {
+                                    if (!suppRes.ok) throw new Error('SVG not found');
+                                    return suppRes.text();
+                                });
+                            }
                             return response.text();
                         })
                         .then(svgContent => {

@@ -44,3 +44,6 @@ test_svg.html
 *.tmp
 *.bak
 
+# 源代码
+Codepoints.net/
+Jigmo-20230816/

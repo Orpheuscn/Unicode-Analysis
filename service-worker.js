@@ -44,15 +44,15 @@ self.addEventListener('activate', (event) => {
 // Fetch事件 - 网络优先，失败则使用缓存（适合SVG文件）
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  
+
   // 对于SVG文件，使用缓存优先策略（因为SVG文件不会变化）
-  if (request.url.includes('/char_svgs/')) {
+  if (request.url.includes('/char_svgs/') || request.url.includes('/supplement_svgs/')) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
           return cachedResponse;
         }
-        
+
         return fetch(request).then((response) => {
           // 只缓存成功的响应
           if (response.status === 200) {
@@ -70,7 +70,7 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  
+
   // 对于其他资源，使用网络优先策略
   event.respondWith(
     fetch(request)
