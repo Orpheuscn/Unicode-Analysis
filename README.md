@@ -77,6 +77,4 @@ MIT License
 
 欢迎提交Issue和Pull Request！
 
----
-
-Made with ❤️ for Unicode enthusiasts
+---Made with ❤️ for Unicode enthusiasts

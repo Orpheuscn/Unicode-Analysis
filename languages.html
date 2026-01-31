@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unicode 字符浏览器</title>
+    <meta name="description" content="多语言 Unicode 字符浏览器">
+    <meta name="theme-color" content="#1c1c1c">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- iOS支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Unicode浏览器">
+    <link rel="apple-touch-icon" href="./icons/icon-180.png">
+
+    <!-- 图标 -->
+    <link rel="icon" type="image/svg+xml" href="./icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+
+    <style>
+        @font-face {
+            font-family: 'DongbaFont';
+            src: url('DongbaFont.otf') format('opentype');
+        }
+
+        @font-face {
+            font-family: 'UnicodeFont';
+            src: local('Noto Sans'),
+                 local('Noto Sans CJK SC'),
+                 local('Arial Unicode MS'),
+                 local('Segoe UI Symbol'),
+                 local('Symbola');
+        }
+
+        :root {
+            --main-bg-color: #1c1c1c;
+            --text-color: #ffffff;
+            --card-bg-color: #222222;
+            --accent-color: #ffffff;
+            --button-bg-color: #333333;
+            --button-text-color: #ffffff;
+            --card-border-color: #333333;
+            --nav-bg-color: #2a2a2a;
+            --nav-active-bg-color: #444444;
+            --nav-hover-bg-color: #3a3a3a;
+        }
+
+        body {
+            font-family: 'DongbaFont', 'Helvetica Neue', 'Apple Color Emoji', Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background-color: var(--main-bg-color);
+            color: var(--text-color);
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: #999;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 语言导航栏样式 */
+        .language-nav {
+            margin-bottom: 30px;
+            background-color: var(--nav-bg-color);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .language-nav h2 {
+            font-size: 18px;
+            margin: 0 0 15px 0;
+            font-weight: normal;
+            color: #999;
+        }
+
+        .language-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .language-item {
+            padding: 0;
+            margin: 0;
+        }
+
+        .language-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .language-link:hover {
+            background-color: var(--nav-hover-bg-color);
+        }
+
+        .language-link.active {
+            background-color: var(--nav-active-bg-color);
+            font-weight: bold;
+        }
+
+        .language-name {
+            font-size: 16px;
+        }
+
+        .language-name-en {
+            font-size: 12px;
+            color: #999;
+            margin-left: 8px;
+        }
+
+        /* 分类导航栏 */
+        .category-nav {
+            margin-bottom: 30px;
+            background-color: var(--nav-bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .category-nav h2 {
+            font-size: 18px;
+            margin: 0 0 15px 0;
+            font-weight: normal;
+            color: #999;
+        }
+
+        .category-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .category-item {
+            padding: 0;
+            margin: 0;
+        }
+
+        .category-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .category-link:hover {
+            background-color: var(--nav-hover-bg-color);
+        }
+
+        .category-link.active {
+            background-color: var(--nav-active-bg-color);
+            font-weight: bold;
+        }
+
+        .current-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: var(--card-bg-color);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+            display: none;
+        }
+
+        .current-section-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .current-section-description {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+
+        .loading-message {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 20px;
+            color: #666;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 24px;
+            color: #666;
+        }
+
+        .results-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .char-card {
+            background-color: var(--card-bg-color);
+            width: 220px;
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            background-color: var(--card-bg-color);
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            border-bottom: 1px solid var(--card-border-color);
+        }
+
+        .card-header .hex-code {
+            font-family: monospace;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .card-char {
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .card-char:hover {
+            background-color: #2a2a2a;
+        }
+
+        .card-char .copied-hint {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: #444;
+            color: #fff;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card-char.copied .copied-hint {
+            opacity: 1;
+        }
+
+        .char-svg-container {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .char-svg-container svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .char-text {
+            display: inline-block;
+        }
+
+        .card-info {
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .char-code {
+            font-family: monospace;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .char-name {
+            font-size: 14px;
+            word-break: break-word;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .char-name:hover {
+            color: #ddd;
+        }
+
+        .char-detail {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #aaa;
+            font-style: italic;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s;
+            opacity: 0;
+        }
+
+        .char-detail.expanded {
+            max-height: 100px;
+            opacity: 1;
+            transition: max-height 0.3s ease-in, opacity 0.3s;
+        }
+
+        .dotted-circle {
+            border: 2px dotted #666;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Unicode 字符浏览器</h1>
+        <p>选择一种语言和分类来查看对应的 Unicode 字符</p>
+    </header>
+
+    <div class="container">
+        <!-- 语言导航栏 -->
+        <div class="language-nav" id="languageNav">
+            <h2>选择语言</h2>
+            <ul class="language-list" id="languageList">
+                <li class="loading-message">正在加载语言列表...</li>
+            </ul>
+        </div>
+
+        <!-- 分类导航栏 -->
+        <div class="category-nav" id="categoryNav">
+            <h2>选择分类</h2>
+            <ul class="category-list" id="categoryList">
+                <li class="loading-message">正在加载分类列表...</li>
+            </ul>
+        </div>
+
+        <!-- 当前分类信息 -->
+        <div class="current-section" id="currentSection">
+            <div class="current-section-title" id="currentSectionTitle"></div>
+            <p class="current-section-description" id="currentSectionDescription"></p>
+        </div>
+
+        <!-- 加载消息 -->
+        <div id="loadingMessage" class="loading-message" style="display: none;">
+            正在加载字符数据...
+        </div>
+
+        <!-- 欢迎消息 -->
+        <div id="welcomeMessage" class="welcome-message">
+            请从上方选择一种语言和分类开始浏览
+        </div>
+
+        <!-- 结果容器 -->
+        <div id="resultsContainer">
+            <!-- 字符将在这里动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let unicodeData = null;
+        let dataLoading = false;
+        let languageConfig = null;
+        let currentLanguage = null;
+        let currentCategory = null;
+
+        // 加载语言配置
+        async function loadLanguageConfig() {
+            try {
+                const response = await fetch('language_config.json');
+                const data = await response.json();
+                languageConfig = data.languages;
+                console.log('语言配置加载完成，包含', Object.keys(languageConfig).length, '种语言');
+            } catch (error) {
+                console.error('加载语言配置失败:', error);
+                alert('加载语言配置失败，请检查 language_config.json 文件');
+            }
+        }
+
+        // 渲染语言列表
+        function renderLanguageList() {
+            const languageList = document.getElementById('languageList');
+            languageList.innerHTML = '';
+
+            for (const [key, lang] of Object.entries(languageConfig)) {
+                const li = document.createElement('li');
+                li.className = 'language-item';
+
+                const link = document.createElement('a');
+                link.className = 'language-link';
+                link.dataset.language = key;
+
+                link.innerHTML = `
+                    <span class="language-name">${lang.name}</span>
+                    <span class="language-name-en">${lang.nameEn}</span>
+                `;
+
+                link.addEventListener('click', () => {
+                    loadLanguage(key);
+                });
+
+                li.appendChild(link);
+                languageList.appendChild(li);
+            }
+        }
+
+        // 渲染分类列表
+        function renderCategoryList(languageKey) {
+            const categoryNav = document.getElementById('categoryNav');
+            const categoryList = document.getElementById('categoryList');
+            categoryList.innerHTML = '';
+
+            const langConfig = languageConfig[languageKey];
+            if (!langConfig || !langConfig.categories) {
+                console.error('未找到语言配置或分类:', languageKey);
+                return;
+            }
+
+            // 添加"全部"选项
+            const allLi = document.createElement('li');
+            allLi.className = 'category-item';
+            const allLink = document.createElement('a');
+            allLink.className = 'category-link active'; // 默认激活
+            allLink.dataset.category = 'all';
+            allLink.textContent = '全部';
+            allLink.addEventListener('click', () => {
+                loadAllCategories(languageKey);
+            });
+            allLi.appendChild(allLink);
+            categoryList.appendChild(allLi);
+
+            // 添加各个分类选项
+            for (const category of langConfig.categories) {
+                const li = document.createElement('li');
+                li.className = 'category-item';
+
+                const link = document.createElement('a');
+                link.className = 'category-link';
+                link.dataset.category = category.id;
+
+                link.textContent = category.name;
+
+                link.addEventListener('click', () => {
+                    loadCategory(category.id);
+                });
+
+                li.appendChild(link);
+                categoryList.appendChild(li);
+            }
+
+            categoryNav.style.display = 'block';
+        }
+
+        // 加载所有分类
+        async function loadAllCategories(languageKey) {
+            const langConfig = languageConfig[languageKey];
+
+            // 更新分类导航栏高亮
+            document.querySelectorAll('.category-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.category === 'all') {
+                    link.classList.add('active');
+                }
+            });
+
+            // 显示当前语言信息
+            const currentSection = document.getElementById('currentSection');
+            document.getElementById('currentSectionTitle').textContent = langConfig.name;
+            document.getElementById('currentSectionDescription').textContent = '所有分类';
+            currentSection.style.display = 'block';
+
+            // 隐藏欢迎消息
+            document.getElementById('welcomeMessage').style.display = 'none';
+
+            // 显示加载消息
+            const loadingMessage = document.getElementById('loadingMessage');
+            loadingMessage.style.display = 'block';
+            loadingMessage.textContent = `正在加载 ${langConfig.name} 所有字符数据...`;
+
+            // 清空结果容器
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '';
+
+            try {
+                // 收集所有分类的字符
+                const allItems = [];
+                for (const category of langConfig.categories) {
+                    const items = collectCategoryItems(category, langConfig);
+                    allItems.push(...items);
+                }
+
+                console.log(`${langConfig.name} 共 ${allItems.length} 个字符`);
+
+                // 创建卡片容器
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'results-section';
+
+                // 预加载Unicode数据
+                await loadUnicodeData();
+
+                // 隐藏加载消息
+                loadingMessage.style.display = 'none';
+
+                // 生成字符卡片
+                let count = 0;
+                for (const item of allItems) {
+                    const card = await createCharCard(item.code, item.detail);
+                    cardsContainer.appendChild(card);
+                    count++;
+
+                    // 每50个字符后暂停一下，避免阻塞UI
+                    if (count % 50 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                }
+
+                resultsContainer.appendChild(cardsContainer);
+
+            } catch (error) {
+                loadingMessage.textContent = '加载失败: ' + error.message;
+                console.error('加载字符失败:', error);
+            }
+        }
+
+        // 获取block的ranges
+        function getBlockRanges(blockId, langConfig) {
+            const block = langConfig.blocks.find(b => b.id === blockId);
+            if (!block) {
+                console.error('未找到block:', blockId);
+                return [];
+            }
+            return block.ranges || [];
+        }
+
+        // 从分类items中收集所有字符信息
+        function collectCategoryItems(category, langConfig) {
+            const items = [];
+
+            for (const item of category.items) {
+                if (item.type === 'block') {
+                    // 引用block
+                    const ranges = getBlockRanges(item.ref, langConfig);
+                    for (const range of ranges) {
+                        const start = parseInt(range.start, 16);
+                        const end = parseInt(range.end, 16);
+                        for (let code = start; code <= end; code++) {
+                            items.push({
+                                code: code,
+                                detail: item.detail || null
+                            });
+                        }
+                    }
+                } else if (item.type === 'range') {
+                    // 直接range
+                    const start = parseInt(item.start, 16);
+                    const end = parseInt(item.end, 16);
+                    for (let code = start; code <= end; code++) {
+                        items.push({
+                            code: code,
+                            detail: item.detail || null
+                        });
+                    }
+                } else if (item.type === 'code') {
+                    // 单个code
+                    const code = parseInt(item.value, 16);
+                    items.push({
+                        code: code,
+                        detail: item.detail || null
+                    });
+                }
+            }
+
+            return items;
+        }
+
+        // 加载指定语言
+        async function loadLanguage(languageKey) {
+            if (!languageConfig[languageKey]) {
+                console.error('未找到语言配置:', languageKey);
+                return;
+            }
+
+            currentLanguage = languageKey;
+            currentCategory = null; // 清空当前分类
+            const langConfig = languageConfig[languageKey];
+
+            // 更新语言导航栏高亮
+            document.querySelectorAll('.language-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.language === languageKey) {
+                    link.classList.add('active');
+                }
+            });
+
+            // 渲染分类列表
+            renderCategoryList(languageKey);
+
+            // 加载所有分类的字符
+            await loadAllCategories(languageKey);
+        }
+
+        // 加载指定分类
+        async function loadCategory(categoryId) {
+            const langConfig = languageConfig[currentLanguage];
+            const category = langConfig.categories.find(c => c.id === categoryId);
+
+            if (!category) {
+                console.error('未找到分类:', categoryId);
+                return;
+            }
+
+            currentCategory = categoryId;
+
+            // 更新分类导航栏高亮
+            document.querySelectorAll('.category-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.category === categoryId) {
+                    link.classList.add('active');
+                }
+            });
+
+            // 显示当前分类信息
+            const currentSection = document.getElementById('currentSection');
+            document.getElementById('currentSectionTitle').textContent = category.name;
+            document.getElementById('currentSectionDescription').textContent = category.description || '';
+            currentSection.style.display = 'block';
+
+            // 隐藏欢迎消息
+            document.getElementById('welcomeMessage').style.display = 'none';
+
+            // 显示加载消息
+            const loadingMessage = document.getElementById('loadingMessage');
+            loadingMessage.style.display = 'block';
+            loadingMessage.textContent = `正在加载 ${category.name} 字符数据...`;
+
+            // 清空结果容器
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '';
+
+            try {
+                // 收集所有字符项
+                const items = collectCategoryItems(category, langConfig);
+                console.log(`${category.name} 共 ${items.length} 个字符`);
+
+                // 创建卡片容器
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'results-section';
+
+                // 预加载Unicode数据
+                await loadUnicodeData();
+
+                // 隐藏加载消息
+                loadingMessage.style.display = 'none';
+
+                // 生成字符卡片
+                let count = 0;
+                for (const item of items) {
+                    const card = await createCharCard(item.code, item.detail);
+                    cardsContainer.appendChild(card);
+                    count++;
+
+                    // 每50个字符后暂停一下，避免阻塞UI
+                    if (count % 50 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                }
+
+                resultsContainer.appendChild(cardsContainer);
+
+            } catch (error) {
+                loadingMessage.textContent = '加载失败: ' + error.message;
+                console.error('加载字符失败:', error);
+            }
+        }
+
+        // 页面加载时预加载JSON数据
+        async function loadUnicodeData() {
+            if (unicodeData || dataLoading) return;
+
+            dataLoading = true;
+            try {
+                console.log('正在加载Unicode数据...');
+                const response = await fetch('unicode_data.json');
+                unicodeData = await response.json();
+                console.log('Unicode数据加载完成，包含', Object.keys(unicodeData).length, '个字符');
+            } catch (error) {
+                console.error('加载Unicode数据失败:', error);
+            } finally {
+                dataLoading = false;
+            }
+        }
+
+        // 从JSON数据获取字符信息
+        async function getCharInfo(codePoint) {
+            // 确保数据已加载
+            if (!unicodeData) {
+                await loadUnicodeData();
+            }
+
+            // 从JSON数据中查询
+            if (unicodeData && unicodeData[codePoint]) {
+                return unicodeData[codePoint];
+            }
+
+            // 如果找不到，返回基本信息
+            return {
+                name: getBasicCharName(codePoint),
+                gc: 'Cn',
+                hex: `U+${codePoint.toString(16).toUpperCase().padStart(4, '0')}`
+            };
+        }
+
+        function getBasicCharName(code) {
+            const hex = code.toString(16).toUpperCase();
+
+            // 针对日语范围的通用名称
+            if (code >= 0x3041 && code <= 0x3096) {
+                return 'HIRAGANA LETTER';
+            }
+            if (code >= 0x30A0 && code <= 0x30FF) {
+                return 'KATAKANA LETTER';
+            }
+
+            return 'U+' + hex;
+        }
+
+        // 复制字符到剪贴板
+        async function copyCharToClipboard(char, cardChar) {
+            try {
+                await navigator.clipboard.writeText(char);
+                // 显示"已复制"提示
+                cardChar.classList.add('copied');
+                setTimeout(() => {
+                    cardChar.classList.remove('copied');
+                }, 1500);
+            } catch (error) {
+                console.error('复制失败:', error);
+                // 降级方案
+                const textarea = document.createElement('textarea');
+                textarea.value = char;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                // 显示"已复制"提示
+                cardChar.classList.add('copied');
+                setTimeout(() => {
+                    cardChar.classList.remove('copied');
+                }, 1500);
+            }
+        }
+
+        // 创建字符卡片
+        async function createCharCard(code, detail = null) {
+            const char = String.fromCodePoint(code);
+            const charInfo = await getCharInfo(code);
+
+            // 根据code的大小决定补齐位数：4位、5位或6位
+            const minDigits = code <= 0xFFFF ? 4 : (code <= 0xFFFFF ? 5 : 6);
+            const hexCode = code.toString(16).toUpperCase().padStart(minDigits, '0');
+
+            // 创建卡片
+            const card = document.createElement('div');
+            card.className = 'char-card';
+
+            // SVG文件路径
+            const svgPath = `char_svgs/U+${hexCode}.svg`;
+
+            // 卡片内容
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="hex-code">U+${hexCode}</span>
+                </div>
+                <div class="card-char" id="char-${hexCode}">
+                    <div class="char-svg-container"></div>
+                    <span class="char-text" style="display: none;">${char}</span>
+                    <div class="copied-hint">已复制</div>
+                </div>
+                <div class="card-info">
+                    <div class="char-name">${charInfo.name}</div>
+                    ${detail ? `<div class="char-detail">${detail}</div>` : ''}
+                </div>
+            `;
+
+            // 点击字符复制
+            const cardChar = card.querySelector('.card-char');
+            cardChar.addEventListener('click', () => {
+                copyCharToClipboard(char, cardChar);
+            });
+
+            // 点击字符名称展开/收起detail
+            if (detail) {
+                const charName = card.querySelector('.char-name');
+                const charDetail = card.querySelector('.char-detail');
+                charName.addEventListener('click', () => {
+                    charDetail.classList.toggle('expanded');
+                });
+            }
+
+            // 异步加载SVG并内联显示
+            const container = card.querySelector('.char-svg-container');
+            fetch(svgPath)
+                .then(response => {
+                    if (!response.ok) {
+                        // SVG in char_svgs not found, try supplement_svgs
+                        const suppPath = `supplement_svgs/U+${hexCode}.svg`;
+                        return fetch(suppPath).then(suppRes => {
+                            if (!suppRes.ok) throw new Error('SVG not found');
+                            return suppRes.text();
+                        });
+                    }
+                    return response.text();
+                })
+                .then(svgContent => {
+                    // 插入SVG内容并添加样式
+                    container.innerHTML = svgContent;
+                    const svgElement = container.querySelector('svg');
+                    if (svgElement) {
+                        svgElement.style.width = '120px';
+                        svgElement.style.height = '120px';
+                        svgElement.style.display = 'block';
+                        // 将所有path设置为白色
+                        const paths = svgElement.querySelectorAll('path');
+                        paths.forEach(path => path.setAttribute('fill', 'white'));
+                    }
+                })
+                .catch(error => {
+                    // SVG加载失败，显示字符
+                    container.style.display = 'none';
+                    card.querySelector('.char-text').style.display = 'inline-block';
+                });
+
+            return card;
+        }
+
+        // 初始化页面
+        async function initializePage() {
+            try {
+                // 加载语言配置
+                await loadLanguageConfig();
+
+                // 渲染语言列表
+                renderLanguageList();
+
+                // 预加载Unicode数据（后台加载）
+                loadUnicodeData();
+
+            } catch (error) {
+                console.error('初始化失败:', error);
+                alert('初始化失败: ' + error.message);
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initializePage);
+
+        // 注册Service Worker实现PWA功能
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker 注册成功:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Service Worker 注册失败:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

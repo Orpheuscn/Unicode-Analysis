@@ -1,0 +1,76 @@
+{
+  "languages": {
+    "japanese": {
+      "name": "日语",
+      "nameEn": "Japanese",
+      "blocks": [
+        {
+          "id": "hiragana",
+          "name": "平假名",
+          "ranges": [
+            { "start": "0x3041", "end": "0x3096" }
+          ]
+        },
+        {
+          "id": "katakana",
+          "name": "片假名",
+          "ranges": [
+            { "start": "0x30A0", "end": "0x30FF" }
+          ]
+        },
+        {
+          "id": "katakana_ext",
+          "name": "片假名扩展",
+          "ranges": [
+            { "start": "0x31F0", "end": "0x31FF" }
+          ]
+        },
+        {
+          "id": "jp_punctuation",
+          "name": "日文标点",
+          "ranges": [
+            { "start": "0x3000", "end": "0x303F" }
+          ]
+        }
+      ],
+      "categories": [
+        {
+          "id": "hiragana_all",
+          "name": "平假名（全部）",
+          "description": "全部平假名，包括大写和小写",
+          "items": [
+            { "type": "block", "ref": "hiragana", "detail": null }
+          ]
+        },
+        {
+          "id": "hiragana_common",
+          "name": "常用平假名",
+          "description": "全部常用平假名",
+          "items": [
+            { "type": "range", "start": "0x3041", "end": "0x3096", "detail": null },
+            { "type": "code", "value": "0x309D", "detail": "修饰字母，主要用于平假名文字" },
+            { "type": "code", "value": "0x309E", "detail": "修饰字母，主要用于平假名文字" }
+          ]
+        },
+        {
+          "id": "katakana_only",
+          "name": "片假名",
+          "description": "全部片假名，包括大写和小写",
+          "items": [
+            { "type": "block", "ref": "katakana" }
+          ]
+        },
+        {
+          "id": "jp_extra",
+          "name": "日语额外字符",
+          "description": "日语额外字符",
+          "items": [
+            { "type": "code", "value": "0x3005", "detail": "修饰字母，主要用于汉字" },
+            { "type": "code", "value": "0x303B", "detail": "修饰字母，主要用于汉字" },
+            { "type": "code", "value": "0x30FC", "detail": "长音符号" }
+          ]
+        }
+      ]
+    }
+  }
+}
